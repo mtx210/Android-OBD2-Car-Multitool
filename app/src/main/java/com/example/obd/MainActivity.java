@@ -17,7 +17,6 @@ import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
-import com.github.pires.obd.commands.protocol.TimeoutCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
 import java.io.IOException;
@@ -35,8 +34,6 @@ public class MainActivity extends AppCompatActivity {
     private String chosenDeviceName;
     private String chosenDeviceAddress;
 
-    private boolean stop = false;
-
     final static int ENABLE_BT_REQUEST = 1;
 
     TextView rpmResult;
@@ -47,14 +44,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         rpmResult = findViewById(R.id.RpmResult);
-
-        Button bStop = findViewById(R.id.bStop);
-        bStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                stop = true;
-            }
-        });
 
         Button bChooseDevice = findViewById(R.id.bChooseDevice);
         bChooseDevice.setOnClickListener(new View.OnClickListener() {
@@ -87,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
             if(resultCode == RESULT_OK){
                 continueBluetooth();
             } if(resultCode == RESULT_CANCELED){
-                Toast.makeText(MainActivity.this, "Allow app to enable BT!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "App required Bluetooth enabled", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -96,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         if(btAdapter == null){
-            Toast.makeText(this, "NO BT", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Device doesn't support Bluetooth", Toast.LENGTH_LONG).show();
         }
         if(!btAdapter.isEnabled()){
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -115,14 +104,11 @@ public class MainActivity extends AppCompatActivity {
             btSocket.connect();
 
             new EchoOffCommand().run(btSocket.getInputStream(), btSocket.getOutputStream());
-
             new LineFeedOffCommand().run(btSocket.getInputStream(), btSocket.getOutputStream());
-
             //new TimeoutCommand(1).run(socket.getInputStream(), socket.getOutputStream());
-
             new SelectProtocolCommand(ObdProtocols.AUTO).run(btSocket.getInputStream(), btSocket.getOutputStream());
 
-            Toast.makeText(MainActivity.this, "CONNECTED!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Connected to OBD", Toast.LENGTH_SHORT).show();
 
         } catch (IOException e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
@@ -142,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                 pairedDevicesAddresses.add(device.getAddress());
             }
         } else{
-            Toast.makeText(this, "No paired devices found!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No paired devices found", Toast.LENGTH_SHORT).show();
         }
 
         final String[] devicesString = pairedDevicesNames.toArray(new String[pairedDevicesNames.size()]);
@@ -176,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
                 try{
                     RPMCommand engineRpmCommand = new RPMCommand();
                     engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    rpmResult.setText("RPM: " + engineRpmCommand.getFormattedResult());
+                    rpmResult.setText(engineRpmCommand.getFormattedResult());
                 } catch (IOException e) {
                     Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
                 } catch (InterruptedException e) {

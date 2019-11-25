@@ -13,10 +13,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.control.VinCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
+import com.github.pires.obd.commands.temperature.AirIntakeTemperatureCommand;
+import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
 import java.io.IOException;
@@ -36,7 +39,9 @@ public class MainActivity extends AppCompatActivity {
 
     final static int ENABLE_BT_REQUEST = 1;
 
-    TextView rpmResult;
+    Timer timer;
+
+    TextView rpmResult, vinResult, airResult, waterResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         rpmResult = findViewById(R.id.RpmResult);
+        vinResult = findViewById(R.id.labelVin);
+        airResult = findViewById(R.id.airTempResult);
+        waterResult = findViewById(R.id.waterTempResult);
 
         Button bChooseDevice = findViewById(R.id.bChooseDevice);
         bChooseDevice.setOnClickListener(new View.OnClickListener() {
@@ -66,6 +74,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startOBD();
+            }
+        });
+
+        Button bStop = findViewById(R.id.bStop);
+        bStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopOBD();
             }
         });
     }
@@ -154,21 +170,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startOBD() {
-
-        Timer timer = new Timer();
+/*
+        try{
+            VinCommand vinCommand = new VinCommand();
+            vinCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            vinResult.setText(vinCommand.getFormattedResult());
+        } catch (InterruptedException e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
+        }
+*/
+        timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 try{
                     RPMCommand engineRpmCommand = new RPMCommand();
                     engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    rpmResult.setText(engineRpmCommand.getFormattedResult());
+                    rpmResult.setText(engineRpmCommand.getCalculatedResult());
+/*
+                    EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
+                    waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                    waterResult.setText(waterTempCommand.getFormattedResult());
+
+                    AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
+                    airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                    airResult.setText(airTempCommand.getFormattedResult());
+*/
                 } catch (IOException e) {
                     Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
                 } catch (InterruptedException e) {
                     Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
                 }
             }
-        }, 0, 1000);
+        }, 0, 500);     //at 100ms refresh app crashes??? 500ms is fine tho
+    }
+
+    private void stopOBD() {
+        timer.cancel();
+        rpmResult.setText("");
+        airResult.setText("");
+        waterResult.setText("");
     }
 }

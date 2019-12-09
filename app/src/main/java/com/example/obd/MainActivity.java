@@ -181,22 +181,30 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
 */
+
+        final RPMCommand engineRpmCommand = new RPMCommand();
+
+        final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
+
+
+        final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
+
+
         timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 try{
-                    RPMCommand engineRpmCommand = new RPMCommand();
+
                     engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
                     rpmResult.setText(engineRpmCommand.getCalculatedResult());
-/*
-                    EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
+                    airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                    airResult.setText(airTempCommand.getFormattedResult());
                     waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
                     waterResult.setText(waterTempCommand.getFormattedResult());
 
-                    AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
-                    airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    airResult.setText(airTempCommand.getFormattedResult());
+/*
+
 */
                 } catch (IOException e) {
                     Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
@@ -204,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
                 }
             }
-        }, 0, 500);     //at 100ms refresh app crashes??? 500ms is fine tho
+        }, 0, 2000);     //at 100ms refresh app crashes??? 500ms is fine tho
     }
 
     private void stopOBD() {

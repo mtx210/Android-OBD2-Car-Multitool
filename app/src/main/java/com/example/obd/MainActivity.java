@@ -13,7 +13,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.pires.obd.commands.control.VinCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
@@ -25,21 +24,16 @@ import com.github.pires.obd.enums.ObdProtocols;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    final static int ENABLE_BT_REQUEST = 1;
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothSocket btSocket;
-
     private String chosenDeviceName;
     private String chosenDeviceAddress;
-
-    final static int ENABLE_BT_REQUEST = 1;
-
-    Timer timer;
+    private boolean readingObd;
 
     TextView rpmResult, vinResult, airResult, waterResult;
 
@@ -92,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
             if(resultCode == RESULT_OK){
                 continueBluetooth();
             } if(resultCode == RESULT_CANCELED){
-                Toast.makeText(MainActivity.this, "App required Bluetooth enabled", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Application requires Bluetooth enabled", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -112,23 +106,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connectOBD() {
-        BluetoothDevice device = btAdapter.getRemoteDevice(chosenDeviceAddress);
-        UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");    //If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.
-
         try {
+            BluetoothDevice device = btAdapter.getRemoteDevice(chosenDeviceAddress);
+            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");    //If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.
+
             btSocket = device.createRfcommSocketToServiceRecord(uuid);
             btSocket.connect();
 
             new EchoOffCommand().run(btSocket.getInputStream(), btSocket.getOutputStream());
             new LineFeedOffCommand().run(btSocket.getInputStream(), btSocket.getOutputStream());
-            //new TimeoutCommand(1).run(socket.getInputStream(), socket.getOutputStream());
             new SelectProtocolCommand(ObdProtocols.AUTO).run(btSocket.getInputStream(), btSocket.getOutputStream());
 
             Toast.makeText(MainActivity.this, "Connected to OBD", Toast.LENGTH_SHORT).show();
 
-        } catch (IOException e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
-        } catch (InterruptedException e) {
+        } catch (IllegalArgumentException e) {
+            Toast.makeText(MainActivity.this, "Please choose Bluetooth device first", Toast.LENGTH_LONG).show();
+        } catch (IOException | InterruptedException e){
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
     }
@@ -170,53 +163,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startOBD() {
-/*
         try{
-            VinCommand vinCommand = new VinCommand();
-            vinCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-            vinResult.setText(vinCommand.getFormattedResult());
-        } catch (InterruptedException e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
+            final RPMCommand engineRpmCommand = new RPMCommand();
+            final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
+            final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
+
+            readingObd = true;
+            while(readingObd){
+                engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                rpmResult.setText(engineRpmCommand.getCalculatedResult());
+                airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                airResult.setText(airTempCommand.getFormattedResult());
+                waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                waterResult.setText(waterTempCommand.getFormattedResult());                         //at 100ms refresh app crashes??? 500ms is fine tho
+
+                Thread.sleep(1000);
+            }
+        } catch(NullPointerException e){
+            Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
+        } catch (InterruptedException | IOException e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
-*/
-
-        final RPMCommand engineRpmCommand = new RPMCommand();
-
-        final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
-
-
-        final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
-
-
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try{
-
-                    engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    rpmResult.setText(engineRpmCommand.getCalculatedResult());
-                    airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    airResult.setText(airTempCommand.getFormattedResult());
-                    waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                    waterResult.setText(waterTempCommand.getFormattedResult());
-
-/*
-
-*/
-                } catch (IOException e) {
-                    Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
-                } catch (InterruptedException e) {
-                    Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
-                }
-            }
-        }, 0, 2000);     //at 100ms refresh app crashes??? 500ms is fine tho
     }
 
     private void stopOBD() {
-        timer.cancel();
+        readingObd = false;
         rpmResult.setText("");
         airResult.setText("");
         waterResult.setText("");

@@ -3,12 +3,10 @@ package com.example.obd;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,7 +19,6 @@ import com.github.pires.obd.commands.temperature.AirIntakeTemperatureCommand;
 import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
@@ -33,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothSocket btSocket;
     private String chosenDeviceName;
     private String chosenDeviceAddress;
-    private boolean readingObd;
 
     TextView rpmResult, vinResult, airResult, waterResult;
 
@@ -48,36 +44,16 @@ public class MainActivity extends AppCompatActivity {
         waterResult = findViewById(R.id.waterTempResult);
 
         Button bChooseDevice = findViewById(R.id.bChooseDevice);
-        bChooseDevice.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                chooseBluetoothDevice();
-            }
-        });
+        bChooseDevice.setOnClickListener(e -> chooseBluetoothDevice());
 
         Button bConnect = findViewById(R.id.bConnect);
-        bConnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                connectOBD();
-            }
-        });
+        bConnect.setOnClickListener(e -> connectOBD());
 
         Button bStart = findViewById(R.id.bStart);
-        bStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startOBD();
-            }
-        });
+        bStart.setOnClickListener(e -> startOBD());
 
         Button bStop = findViewById(R.id.bStop);
-        bStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopOBD();
-            }
-        });
+        bStop.setOnClickListener(e -> stopOBD());
     }
 
     @Override
@@ -121,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (IllegalArgumentException e) {
             Toast.makeText(MainActivity.this, "Please choose Bluetooth device first", Toast.LENGTH_LONG).show();
-        } catch (IOException | InterruptedException e){
+        } catch (Exception e){
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
     }
@@ -144,18 +120,15 @@ public class MainActivity extends AppCompatActivity {
 
         AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
         mBuilder.setTitle("Choose OBD device:");
-        mBuilder.setSingleChoiceItems(devicesString, -1, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int i) {
-                dialog.dismiss();
-                int position = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
-                chosenDeviceAddress = pairedDevicesAddresses.get(position);
-                chosenDeviceName = pairedDevicesNames.get(position);
-                Toast.makeText(MainActivity.this, "Chosen: " + chosenDeviceName, Toast.LENGTH_SHORT).show();
+        mBuilder.setSingleChoiceItems(devicesString, -1, (dialog, i) -> {
+            dialog.dismiss();
+            int position = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
+            chosenDeviceAddress = pairedDevicesAddresses.get(position);
+            chosenDeviceName = pairedDevicesNames.get(position);
+            Toast.makeText(MainActivity.this, "Chosen: " + chosenDeviceName, Toast.LENGTH_SHORT).show();
 
-                TextView info = findViewById(R.id.info);
-                info.setText(chosenDeviceName + chosenDeviceAddress);
-            }
+            TextView info = findViewById(R.id.info);
+            info.setText(String.format("%s%s", chosenDeviceName, chosenDeviceAddress));
         });
 
         AlertDialog mDialog = mBuilder.create();
@@ -168,8 +141,6 @@ public class MainActivity extends AppCompatActivity {
             final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
             final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
 
-            readingObd = true;
-            while(readingObd){
                 engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
                 rpmResult.setText(engineRpmCommand.getCalculatedResult());
                 airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
@@ -177,17 +148,14 @@ public class MainActivity extends AppCompatActivity {
                 waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
                 waterResult.setText(waterTempCommand.getFormattedResult());                         //at 100ms refresh app crashes??? 500ms is fine tho
 
-                Thread.sleep(1000);
-            }
         } catch(NullPointerException e){
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
-        } catch (InterruptedException | IOException e) {
+        } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
     }
 
     private void stopOBD() {
-        readingObd = false;
         rpmResult.setText("");
         airResult.setText("");
         waterResult.setText("");

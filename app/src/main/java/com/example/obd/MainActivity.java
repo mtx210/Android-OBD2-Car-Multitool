@@ -28,9 +28,8 @@ public class MainActivity extends AppCompatActivity {
     final static int ENABLE_BT_REQUEST = 1;
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothSocket btSocket;
-    private String chosenDeviceName;
-    private String chosenDeviceAddress;
-
+    private String chosenDeviceName, chosenDeviceAddress;
+    private Button bConnect, bStart, bStop;
     TextView rpmResult, vinResult, airResult, waterResult;
 
     @Override
@@ -46,14 +45,17 @@ public class MainActivity extends AppCompatActivity {
         Button bChooseDevice = findViewById(R.id.bChooseDevice);
         bChooseDevice.setOnClickListener(e -> chooseBluetoothDevice());
 
-        Button bConnect = findViewById(R.id.bConnect);
+        bConnect = findViewById(R.id.bConnect);
         bConnect.setOnClickListener(e -> connectOBD());
+        bConnect.setEnabled(false);
 
-        Button bStart = findViewById(R.id.bStart);
+        bStart = findViewById(R.id.bStart);
         bStart.setOnClickListener(e -> startOBD());
+        bStart.setEnabled(false);
 
-        Button bStop = findViewById(R.id.bStop);
+        bStop = findViewById(R.id.bStop);
         bStop.setOnClickListener(e -> stopOBD());
+        bStop.setEnabled(false);
     }
 
     @Override
@@ -81,6 +83,40 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void continueBluetooth(){
+        final ArrayList<String> pairedDevicesNames = new ArrayList<>();
+        final ArrayList<String> pairedDevicesAddresses = new ArrayList<>();
+
+        Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            for (BluetoothDevice device : pairedDevices) {
+                pairedDevicesNames.add(device.getName());
+                pairedDevicesAddresses.add(device.getAddress());
+
+                final String[] devicesString = pairedDevicesNames.toArray(new String[0]);
+
+                AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
+                mBuilder.setTitle("Choose OBD device:");
+                mBuilder.setSingleChoiceItems(devicesString, -1, (dialog, i) -> {
+                    dialog.dismiss();
+                    int position = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
+                    chosenDeviceAddress = pairedDevicesAddresses.get(position);
+                    chosenDeviceName = pairedDevicesNames.get(position);
+                    Toast.makeText(MainActivity.this, "Chosen: " + chosenDeviceName, Toast.LENGTH_SHORT).show();
+
+                    TextView info = findViewById(R.id.info);
+                    info.setText(String.format("Name: %s\tAddress: %s", chosenDeviceName, chosenDeviceAddress));
+                    bConnect.setEnabled(true);
+                });
+
+                AlertDialog mDialog = mBuilder.create();
+                mDialog.show();
+            }
+        } else{
+            Toast.makeText(this, "No paired devices found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void connectOBD() {
         try {
             BluetoothDevice device = btAdapter.getRemoteDevice(chosenDeviceAddress);
@@ -94,6 +130,9 @@ public class MainActivity extends AppCompatActivity {
             new SelectProtocolCommand(ObdProtocols.AUTO).run(btSocket.getInputStream(), btSocket.getOutputStream());
 
             Toast.makeText(MainActivity.this, "Connected to OBD", Toast.LENGTH_SHORT).show();
+            bStart.setEnabled(true);
+            bStop.setEnabled(true);
+            bConnect.setEnabled(false);
 
         } catch (IllegalArgumentException e) {
             Toast.makeText(MainActivity.this, "Please choose Bluetooth device first", Toast.LENGTH_LONG).show();
@@ -102,52 +141,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void continueBluetooth(){
-        final ArrayList<String> pairedDevicesNames = new ArrayList<>();
-        final ArrayList<String> pairedDevicesAddresses = new ArrayList<>();
-
-        Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
-        if (pairedDevices.size() > 0) {
-            for (BluetoothDevice device : pairedDevices) {
-                pairedDevicesNames.add(device.getName());
-                pairedDevicesAddresses.add(device.getAddress());
-            }
-        } else{
-            Toast.makeText(this, "No paired devices found", Toast.LENGTH_SHORT).show();
-        }
-
-        final String[] devicesString = pairedDevicesNames.toArray(new String[pairedDevicesNames.size()]);
-
-        AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
-        mBuilder.setTitle("Choose OBD device:");
-        mBuilder.setSingleChoiceItems(devicesString, -1, (dialog, i) -> {
-            dialog.dismiss();
-            int position = ((AlertDialog) dialog).getListView().getCheckedItemPosition();
-            chosenDeviceAddress = pairedDevicesAddresses.get(position);
-            chosenDeviceName = pairedDevicesNames.get(position);
-            Toast.makeText(MainActivity.this, "Chosen: " + chosenDeviceName, Toast.LENGTH_SHORT).show();
-
-            TextView info = findViewById(R.id.info);
-            info.setText(String.format("%s%s", chosenDeviceName, chosenDeviceAddress));
-        });
-
-        AlertDialog mDialog = mBuilder.create();
-        mDialog.show();
-    }
-
     private void startOBD() {
         try{
             final RPMCommand engineRpmCommand = new RPMCommand();
+            engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            rpmResult.setText(engineRpmCommand.getCalculatedResult());
+        } catch(NullPointerException e){
+            Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
+        }
+
+        try{
             final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
+            waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            waterResult.setText(waterTempCommand.getFormattedResult());                         //at 100ms refresh app crashes??? 500ms is fine tho
+        } catch(NullPointerException e){
+            Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
+        }
+
+        try{
             final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
-
-                engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                rpmResult.setText(engineRpmCommand.getCalculatedResult());
-                airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                airResult.setText(airTempCommand.getFormattedResult());
-                waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-                waterResult.setText(waterTempCommand.getFormattedResult());                         //at 100ms refresh app crashes??? 500ms is fine tho
-
+            airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            airResult.setText(airTempCommand.getFormattedResult());
         } catch(NullPointerException e){
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {

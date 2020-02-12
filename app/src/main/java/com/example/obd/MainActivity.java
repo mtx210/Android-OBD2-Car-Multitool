@@ -211,8 +211,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    //If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.
-
     private void connectOBD() {
         try {
             BluetoothDevice device = btAdapter.getRemoteDevice(chosenDeviceAddress);
@@ -240,28 +238,26 @@ public class MainActivity extends Activity {
     }
 
     private void startOBD() {
-        try{
+        try {
             command1.run(btSocket.getInputStream(), btSocket.getOutputStream());
             command1Result.setText(command1.getCalculatedResult());
-        } catch(NullPointerException e){
+        } catch (NullPointerException e) {
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
-
-        try{
+        try {
             command2.run(btSocket.getInputStream(), btSocket.getOutputStream());
             command2Result.setText(command2.getCalculatedResult());
-        } catch(NullPointerException e){
+        } catch (NullPointerException e) {
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
-
-        try{
+        try {
             command3.run(btSocket.getInputStream(), btSocket.getOutputStream());
             command3Result.setText(command3.getCalculatedResult());
-        } catch(NullPointerException e){
+        } catch (NullPointerException e) {
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
@@ -274,3 +270,8 @@ public class MainActivity extends Activity {
         command3Result.setText("");
     }
 }
+
+
+
+
+//If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.

@@ -18,43 +18,43 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
-        android:id="@+id/RpmLabel"
+        android:id="@+id/command1Label"
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="136dp"
+        android:text="SPEED:"
+        android:textSize="24sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/command2Label"
+        android:layout_width="150dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="20dp"
         android:text="RPM:"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/command1Label" />
 
     <TextView
-        android:id="@+id/waterTempLabel"
+        android:id="@+id/command3Label"
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="20dp"
-        android:text="Water temp:"
+        android:text="Engine load:"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/RpmLabel" />
+        app:layout_constraintTop_toBottomOf="@+id/command2Label" />
 
     <TextView
-        android:id="@+id/airTempLabel"
-        android:layout_width="150dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="20dp"
-        android:text="Air temp:"
-        android:textSize="24sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/waterTempLabel" />
-
-    <TextView
-        android:id="@+id/RpmResult"
+        android:id="@+id/command1Result"
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginTop="136dp"
@@ -65,7 +65,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/waterTempResult"
+        android:id="@+id/command2Result"
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginTop="20dp"
@@ -73,10 +73,10 @@
         android:layout_marginRight="16dp"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/RpmResult" />
+        app:layout_constraintTop_toBottomOf="@+id/command1Result" />
 
     <TextView
-        android:id="@+id/airTempResult"
+        android:id="@+id/command3Result"
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_marginTop="20dp"
@@ -84,7 +84,7 @@
         android:layout_marginRight="16dp"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/waterTempResult" />
+        app:layout_constraintTop_toBottomOf="@+id/command2Result" />
 
     <Button
         android:id="@+id/bStart"
@@ -117,7 +117,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
-        android:text="No Bluetooth device selected YET"
+        android:text="No Bluetooth device selected"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.041"
         app:layout_constraintStart_toStartOf="parent"
@@ -134,14 +134,15 @@
         app:layout_constraintBottom_toTopOf="@+id/bStart"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <TextView
-        android:id="@+id/labelVin"
-        android:layout_width="208dp"
-        android:layout_height="40dp"
+    <Button
+        android:id="@+id/bChooseParams"
+        android:layout_width="150dp"
+        android:layout_height="50dp"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/info" />
+        android:layout_marginBottom="12dp"
+        android:text="Choose parameters"
+        app:layout_constraintBottom_toTopOf="@+id/bChooseDevice"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

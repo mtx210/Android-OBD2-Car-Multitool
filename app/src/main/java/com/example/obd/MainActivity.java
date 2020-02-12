@@ -1,17 +1,25 @@
 package com.example.obd;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.ObdCommand;
+import com.github.pires.obd.commands.SpeedCommand;
+import com.github.pires.obd.commands.control.VinCommand;
+import com.github.pires.obd.commands.engine.LoadCommand;
+import com.github.pires.obd.commands.engine.OilTempCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.engine.ThrottlePositionCommand;
+import com.github.pires.obd.commands.fuel.FuelLevelCommand;
+import com.github.pires.obd.commands.pressure.IntakeManifoldPressureCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
@@ -19,31 +27,58 @@ import com.github.pires.obd.commands.temperature.AirIntakeTemperatureCommand;
 import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     final static int ENABLE_BT_REQUEST = 1;
+    final static int CHOOSE_PARAMS_REQUEST = 2;
+
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothSocket btSocket;
     private String chosenDeviceName, chosenDeviceAddress;
     private Button bConnect, bStart, bStop;
-    TextView rpmResult, vinResult, airResult, waterResult;
+    private TextView command1Label, command2Label, command3Label;
+    private TextView command1Result, command2Result, command3Result;
+
+    private ObdCommand command1 = new RPMCommand();
+    private ObdCommand command2 = new SpeedCommand();
+    private ObdCommand command3 = new LoadCommand();
+
+    private ArrayList<ObdCommand> chosenParameters = new ArrayList<ObdCommand>(){{ add(command1); add(command2); add(command3); }};
+    private int chosenParametersAmount = 3;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        rpmResult = findViewById(R.id.RpmResult);
-        vinResult = findViewById(R.id.labelVin);
-        airResult = findViewById(R.id.airTempResult);
-        waterResult = findViewById(R.id.waterTempResult);
+        command1Label = findViewById(R.id.command1Label);
+        command2Label = findViewById(R.id.command2Label);
+        command3Label = findViewById(R.id.command3Label);
+
+        command1Result = findViewById(R.id.command1Result);
+        command2Result = findViewById(R.id.command2Result);
+        command3Result = findViewById(R.id.command3Result);
 
         Button bChooseDevice = findViewById(R.id.bChooseDevice);
         bChooseDevice.setOnClickListener(e -> chooseBluetoothDevice());
+
+        Button bChooseParams = findViewById(R.id.bChooseParams);
+        bChooseParams.setOnClickListener(e -> {
+            Intent chooseParametersIntent = new Intent(this, ParametersActivity.class);
+            ArrayList<String> chosenParametersNames = new ArrayList<>();
+            for(ObdCommand obdCommand : chosenParameters){
+                chosenParametersNames.add(obdCommand.getName());
+            }
+            chooseParametersIntent.putExtra("currentlySelectedParameters", chosenParametersNames);
+            chooseParametersIntent.putExtra("currentParametersAmount", chosenParametersAmount);
+            startActivityForResult(chooseParametersIntent, CHOOSE_PARAMS_REQUEST);
+        });
 
         bConnect = findViewById(R.id.bConnect);
         bConnect.setOnClickListener(e -> connectOBD());
@@ -66,11 +101,70 @@ public class MainActivity extends AppCompatActivity {
             } if(resultCode == RESULT_CANCELED){
                 Toast.makeText(MainActivity.this, "Application requires Bluetooth enabled", Toast.LENGTH_LONG).show();
             }
+        } else if(requestCode == CHOOSE_PARAMS_REQUEST){
+            if(resultCode == RESULT_OK && data != null){
+                chosenParametersAmount = data.getIntExtra("parametersAmount", 3);
+                ArrayList<String> newParametersNames = (ArrayList<String>) data.getSerializableExtra("parameters");
+                chosenParameters.clear();
+                for(String paramName : newParametersNames){
+                    switch(paramName){
+                        case "Vehicle Identification Number (VIN)":
+                            chosenParameters.add(new VinCommand());
+                            break;
+                        case "Vehicle Speed":
+                            chosenParameters.add(new SpeedCommand());
+                            break;
+                        case "Engine RPM":
+                            chosenParameters.add(new RPMCommand());
+                            break;
+                        case "Engine Load":
+                            chosenParameters.add(new LoadCommand());
+                            break;
+                        case "Throttle Position":
+                            chosenParameters.add(new ThrottlePositionCommand());
+                            break;
+                        case "Engine Coolant Temperature":
+                            chosenParameters.add(new EngineCoolantTemperatureCommand());
+                            break;
+                        case "Engine oil temperature":
+                            chosenParameters.add(new OilTempCommand());
+                            break;
+                        case "Intake Manifold Pressure":
+                            chosenParameters.add(new IntakeManifoldPressureCommand());
+                            break;
+                        case "Fuel Level":
+                            chosenParameters.add(new FuelLevelCommand());
+                            break;
+                    }
+                }
+                try{
+                    command1Label.setText(String.format("%s:", chosenParameters.get(0).getName()));
+                    command1 = chosenParameters.get(0);
+                } catch (IndexOutOfBoundsException ex){
+                    command1Label.setText("");
+                    command1 = null;
+                }
+                try{
+                    command2Label.setText(String.format("%s:", chosenParameters.get(1).getName()));
+                    command2 = chosenParameters.get(1);
+                } catch (IndexOutOfBoundsException ex){
+                    command2Label.setText("");
+                    command2 = null;
+                }
+                try {
+                    command3Label.setText(String.format("%s:", chosenParameters.get(2).getName()));
+                    command3 = chosenParameters.get(2);
+                } catch (IndexOutOfBoundsException ex){
+                    command3Label.setText("");
+                    command3 = null;
+                }
+            } else {
+                Toast.makeText(MainActivity.this, "Problem resolving parameters", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
     private void chooseBluetoothDevice(){
-
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         if(btAdapter == null){
             Toast.makeText(this, "Device doesn't support Bluetooth", Toast.LENGTH_LONG).show();
@@ -117,10 +211,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.
+
     private void connectOBD() {
         try {
             BluetoothDevice device = btAdapter.getRemoteDevice(chosenDeviceAddress);
-            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");    //If you are connecting to a Bluetooth serial board then try using the well-known SPP UUID 00001101-0000-1000-8000-00805F9B34FB. However if you are connecting to an Android peer then please generate your own unique UUID.
+            UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
             btSocket = device.createRfcommSocketToServiceRecord(uuid);
             btSocket.connect();
@@ -136,6 +232,8 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (IllegalArgumentException e) {
             Toast.makeText(MainActivity.this, "Please choose Bluetooth device first", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(MainActivity.this, "Please enable Bluetooth", Toast.LENGTH_LONG).show();
         } catch (Exception e){
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }
@@ -143,9 +241,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void startOBD() {
         try{
-            final RPMCommand engineRpmCommand = new RPMCommand();
-            engineRpmCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-            rpmResult.setText(engineRpmCommand.getCalculatedResult());
+            command1.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            command1Result.setText(command1.getCalculatedResult());
         } catch(NullPointerException e){
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
@@ -153,9 +250,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         try{
-            final EngineCoolantTemperatureCommand waterTempCommand = new EngineCoolantTemperatureCommand();
-            waterTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-            waterResult.setText(waterTempCommand.getFormattedResult());                         //at 100ms refresh app crashes??? 500ms is fine tho
+            command2.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            command2Result.setText(command2.getCalculatedResult());
         } catch(NullPointerException e){
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
@@ -163,9 +259,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         try{
-            final AirIntakeTemperatureCommand airTempCommand = new AirIntakeTemperatureCommand();
-            airTempCommand.run(btSocket.getInputStream(), btSocket.getOutputStream());
-            airResult.setText(airTempCommand.getFormattedResult());
+            command3.run(btSocket.getInputStream(), btSocket.getOutputStream());
+            command3Result.setText(command3.getCalculatedResult());
         } catch(NullPointerException e){
             Toast.makeText(MainActivity.this, "Please connect to Bluetooth device first", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
@@ -174,8 +269,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopOBD() {
-        rpmResult.setText("");
-        airResult.setText("");
-        waterResult.setText("");
+        command1Result.setText("");
+        command2Result.setText("");
+        command3Result.setText("");
     }
 }

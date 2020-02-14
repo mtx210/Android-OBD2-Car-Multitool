@@ -69,7 +69,7 @@
         android:layout_marginTop="16dp"
         android:text="Air intake temp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.091"
+        app:layout_constraintHorizontal_bias="0.084"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cbOilTemp" />
 

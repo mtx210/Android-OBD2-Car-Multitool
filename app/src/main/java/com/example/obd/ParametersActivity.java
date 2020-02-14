@@ -147,9 +147,14 @@ public class ParametersActivity extends Activity {
     }
 
     private void removeParam(String paramName, CheckBox parentBox){
-        chosenParams.remove(paramName);
-        chosenParamsAmount--;
-        parentBox.setChecked(false);
+        if(chosenParamsAmount>1){
+            chosenParams.remove(paramName);
+            chosenParamsAmount--;
+            parentBox.setChecked(false);
+        } else {
+            Toast.makeText(ParametersActivity.this, "There must be at least one parameter to display", Toast.LENGTH_LONG).show();
+            parentBox.setChecked(true);
+        }
     }
 
     public void finishAction(){

@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private BluetoothSocket btSocket;
     private String chosenDeviceName, chosenDeviceAddress;
-    private Button bConnect, bStart, bStop;
+    private Button bConnect, bStart, bStop, bChooseDevice;
     private TextView command1Label, command2Label, command3Label;
     private TextView command1Result, command2Result, command3Result;
 
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
         command2Result = findViewById(R.id.command2Result);
         command3Result = findViewById(R.id.command3Result);
 
-        Button bChooseDevice = findViewById(R.id.bChooseDevice);
+        bChooseDevice = findViewById(R.id.bChooseDevice);
         bChooseDevice.setOnClickListener(e -> chooseBluetoothDevice());
 
         Button bChooseParams = findViewById(R.id.bChooseParams);
@@ -228,7 +228,6 @@ public class MainActivity extends Activity {
 
             Toast.makeText(MainActivity.this, "Connected to OBD", Toast.LENGTH_SHORT).show();
             bStart.setEnabled(true);
-            bStop.setEnabled(true);
             bConnect.setEnabled(false);
 
         } catch (IllegalArgumentException e) {
@@ -265,6 +264,10 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_LONG).show();
         }*/
+        bStart.setEnabled(false);
+        bConnect.setEnabled(false);
+        bChooseDevice.setEnabled(false);
+        bStop.setEnabled(true);
         timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -272,6 +275,10 @@ public class MainActivity extends Activity {
                 try {
                     command1.run(btSocket.getInputStream(), btSocket.getOutputStream());
                     command1Result.setText(command1.getCalculatedResult());
+                    command2.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                    command2Result.setText(command2.getCalculatedResult());
+                    command3.run(btSocket.getInputStream(), btSocket.getOutputStream());
+                    command3Result.setText(command3.getCalculatedResult());
                 } catch (Exception e) {
                     Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                 }
@@ -284,6 +291,10 @@ public class MainActivity extends Activity {
         command2Result.setText("");
         command3Result.setText("");
         timer.cancel();
+        bStart.setEnabled(true);
+        bStop.setEnabled(false);
+        bConnect.setEnabled(true);
+        bChooseDevice.setEnabled(true);
     }
 }
 
